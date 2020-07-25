@@ -2,6 +2,8 @@
 using System.Net;
 using System.Net.Http;
 
+using BulkDownloader.RequestTemplates;
+
 namespace BulkDownloader
 {
     public class Downloader
@@ -10,7 +12,7 @@ namespace BulkDownloader
 
         public Downloader(string email, string password)
         {
-
+            AuthRequest req = new AuthRequest(email, password);
         }
     }
 }
