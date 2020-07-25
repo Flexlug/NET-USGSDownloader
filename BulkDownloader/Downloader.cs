@@ -5,6 +5,8 @@ using System.Net.Http;
 
 using Newtonsoft.Json;
 
+using RestSharp;
+
 using BulkDownloader.Exceptions;
 using BulkDownloader.RequestTemplates;
 using BulkDownloader.ResponseTemplates;
@@ -19,12 +21,12 @@ namespace BulkDownloader
         /// <summary>
         /// Http client for communication purposes with USGS site
         /// </summary>
-        private HttpClient _client = new HttpClient();
+        private IRestClient _client = new RestClient();
 
         /// <summary>
         /// URI to USGS API
         /// </summary>
-        private readonly string USGS_URL = @"http://m2m.cr.usgs.gov/api/api/json/stable/";
+        private readonly string USGS_URL = @"https://m2m.cr.usgs.gov/api/api/json/stable/";
 
         /// <summary>
         /// API Token, which is recieved while authorization
@@ -39,12 +41,19 @@ namespace BulkDownloader
         public Downloader(string email, string password)
         {
             AuthRequest req = new AuthRequest(email, password);
-            HttpRequestMessage req_message = new HttpRequestMessage(HttpMethod.Post, new Uri(USGS_URL + "login"));
+
+            RestRequest req_message = new RestRequest(USGS_URL + "login", Method.POST);
+            req_message.RequestFormat = DataFormat.Json;
 
             string content_json = JsonConvert.SerializeObject(req);
-            req_message.Content = new StringContent(content_json, Encoding.Default, "application/json");
+            req_message.AddJsonBody(content_json);
 
-            HttpResponseMessage message = _client.SendAsync(req_message).Result;
+            //HttpRequestMessage req_message = new HttpRequestMessage(HttpMethod.Get, new Uri(USGS_URL + "login"));
+
+            //req_message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("{ \"username\": \"flexlug\", \"password\": \"Kjvjyjcjd123456789\" }");
+
+
+            IRestResponse message = _client.Execute(req_message);
 
             if (message.StatusCode == HttpStatusCode.OK)
             {
