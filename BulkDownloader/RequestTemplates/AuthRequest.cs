@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 
+using Newtonsoft.Json;
+
 namespace BulkDownloader.RequestTemplates
 {
     /// <summary>
@@ -9,7 +11,10 @@ namespace BulkDownloader.RequestTemplates
     /// </summary>
     public class AuthRequest
     {
+        [JsonProperty("username")]
         public string Login { get; set; }
+
+        [JsonProperty("password")]
         public string Password { get; set; }
 
         public AuthRequest(string login, string password)
