@@ -75,7 +75,7 @@ namespace BulkDownloader
         public DatasetCategoriesResponse    DatasetCategories(DatasetCategoriesRequest req)     => MakeRequest<DatasetCategoriesRequest, DatasetCategoriesResponse>("dataset-categories", req) as DatasetCategoriesResponse;
         public DatasetSearchResponse        DatasetSearch(DatasetSearchRequest req)             => MakeRequest<DatasetSearchRequest, DatasetSearchResponse>("dataset-search", req) as DatasetSearchResponse;
         public DownloadLabelsResponse       DownloadLabels(DownloadLabelsRequest req)           => MakeRequest<DownloadLabelsRequest, DownloadLabelsResponse>("download-labels", req) as DownloadLabelsResponse;
-
+        public DownloadOrderLoadResponse    DownloadOrderLoad(DownloadOrderLoadRequest req)     => MakeRequest<DownloadOrderLoadRequest, DownloadOrderLoadResponse>("download-order-load", req) as DownloadOrderLoadResponse;
 
         /// <summary>
         /// Make request to given endpoint url
