@@ -15,10 +15,32 @@ namespace BulkDownloader_Console
             //    DataOwner = "DMID"
             //});
 
-            BulkDownloader.ResponseTemplates.DatasetResponse resp = downloader.Dataset(new BulkDownloader.RequestTemplates.DatasetRequest()
-            {
-                DatasetName = "gls_all"
-            });
+            //BulkDownloader.ResponseTemplates.DatasetResponse resp = downloader.Dataset(new BulkDownloader.RequestTemplates.DatasetRequest()
+            //{
+            //    DatasetName = "gls_all"
+            //});
+
+            //BulkDownloader.ResponseTemplates.DatasetSearchResponse resp;
+            //resp = downloader.DatasetSearch(new BulkDownloader.RequestTemplates.DatasetSearchRequest()
+            //{
+            //    DatasetName = "Global",
+            //    SpatialFilter = new BulkDownloader.RequestTemplates.DatasetSearchRequest.SpatialFilterStruct()
+            //    {
+            //        FilterType = "mbr",
+            //        LowerLeft = new BulkDownloader.RequestTemplates.DatasetSearchRequest.SpatialFilterStruct.Coordinates()
+            //        {
+            //            Latitude = 44.60847,
+            //            Longitude = -99.69639
+            //        },
+            //        UpperRight = new BulkDownloader.RequestTemplates.DatasetSearchRequest.SpatialFilterStruct.Coordinates()
+            //        {
+            //            Latitude = 44.60847,
+            //            Longitude = -99.69639
+            //        }
+            //    }
+            //});
+
+
 
             Console.WriteLine("OK");
         }

@@ -10,6 +10,7 @@ using RestSharp;
 using BulkDownloader.Exceptions;
 using BulkDownloader.RequestTemplates;
 using BulkDownloader.ResponseTemplates;
+using System.IO;
 
 namespace BulkDownloader
 {
@@ -46,7 +47,7 @@ namespace BulkDownloader
         /// <summary>
         /// String representation of this application
         /// </summary>
-        private readonly string downloadApplication;
+        public readonly string DownloadApplication;
 
         /// <summary>
         /// Create Downloader instance and authorize on USGS site
@@ -58,7 +59,7 @@ namespace BulkDownloader
             _email = email;
             _password = password;
 
-            downloadApplication = "NET-Core-BulkDownloader (C#) Platform/Windows";
+            DownloadApplication = "NET-Core-BulkDownloader (C#) Platform/Windows";
             
             // Do not serialize null fields
             JsonSerializer.CreateDefault(new JsonSerializerSettings()
@@ -72,6 +73,9 @@ namespace BulkDownloader
         public DataOwnerResponse            DataOwner(DataOwnerRequest req)                     => MakeRequest<DataOwnerRequest, DataOwnerResponse>("data-owner", req) as DataOwnerResponse;
         public DatasetResponse              Dataset(DatasetRequest req)                         => MakeRequest<DatasetRequest, DatasetResponse>("dataset", req) as DatasetResponse;
         public DatasetCategoriesResponse    DatasetCategories(DatasetCategoriesRequest req)     => MakeRequest<DatasetCategoriesRequest, DatasetCategoriesResponse>("dataset-categories", req) as DatasetCategoriesResponse;
+        public DatasetSearchResponse        DatasetSearch(DatasetSearchRequest req)             => MakeRequest<DatasetSearchRequest, DatasetSearchResponse>("dataset-search", req) as DatasetSearchResponse;
+        public DownloadLabelsResponse       DownloadLabels(DownloadLabelsRequest req)           => MakeRequest<DownloadLabelsRequest, DownloadLabelsResponse>("download-labels", req) as DownloadLabelsResponse;
+
 
         /// <summary>
         /// Make request to given endpoint url
@@ -114,9 +118,16 @@ namespace BulkDownloader
             IRestResponse message = _client.Execute(req_message);
 
             if (message.StatusCode == HttpStatusCode.OK)
+            {
+                using (StreamWriter sr = new StreamWriter($"resp-{DateTime.Now.Ticks}.json"))
+                    sr.WriteLine(message.Content);
+
                 return message;
-            else
-                throw new USGSUnauthorizedException();
+            }
+            else 
+            {
+                throw new USGSUnauthorizedException(); 
+            }
         }
 
         private RestRequest constructPostMessage(string url_end, string content, bool needToken = true)
