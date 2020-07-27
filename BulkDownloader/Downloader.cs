@@ -80,6 +80,18 @@ namespace BulkDownloader
             return response;
         }
 
+        public DatasetResponse Dataset(DatasetRequest req)
+        {
+            string content_json = JsonConvert.SerializeObject(req);
+            RestRequest req_message = constructPostMessage("dataset", content_json);
+            IRestResponse message = sendRequest(req_message);
+
+            DatasetResponse response = JsonConvert.DeserializeObject<DatasetResponse>(message.Content.ToString())
+                                        ?? throw new USGSResponseNullException();
+
+            return response;
+        }
+
         private void updateToken()
         {
             AuthRequest req = new AuthRequest(_email, _password);

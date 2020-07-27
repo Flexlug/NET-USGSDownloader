@@ -11,7 +11,7 @@ namespace BulkDownloader.ResponseTemplates
     /// </summary>
     public class DataOwnerResponse
     {
-        public class Data
+        public class DataStruct
         {
             [JsonProperty("city")]
             public string City { get; set; }
@@ -39,7 +39,7 @@ namespace BulkDownloader.ResponseTemplates
         }
 
         [JsonProperty("data")]
-        public Data RespData { get; set; }
+        public DataStruct Data { get; set; }
 
         [JsonProperty("version")]
         public string Version { get; set; }

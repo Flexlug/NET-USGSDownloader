@@ -9,9 +9,15 @@ namespace BulkDownloader_Console
         static void Main(string[] args)
         {
             Downloader downloader = new Downloader("flexlug", "Kjvjyjcjd123456789");
-            BulkDownloader.ResponseTemplates.DataOwnerResponse resp = downloader.DataOwner(new BulkDownloader.RequestTemplates.DataOwnerRequest()
+
+            //BulkDownloader.ResponseTemplates.DataOwnerResponse resp = downloader.DataOwner(new BulkDownloader.RequestTemplates.DataOwnerRequest()
+            //{
+            //    DataOwner = "DMID"
+            //});
+
+            BulkDownloader.ResponseTemplates.DatasetResponse resp = downloader.Dataset(new BulkDownloader.RequestTemplates.DatasetRequest()
             {
-                DataOwner = "DMID"
+                DatasetName = "gls_all"
             });
 
             Console.WriteLine("OK");
