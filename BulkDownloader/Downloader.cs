@@ -60,35 +60,35 @@ namespace BulkDownloader
 
             downloadApplication = "NET-Core-BulkDownloader (C#) Platform/Windows";
             
+            // Do not serialize null fields
+            JsonSerializer.CreateDefault(new JsonSerializerSettings()
+            {
+                NullValueHandling = NullValueHandling.Ignore
+            });
+
             updateToken();
         }
 
+        public DataOwnerResponse            DataOwner(DataOwnerRequest req)                     => MakeRequest<DataOwnerRequest, DataOwnerResponse>("data-owner", req) as DataOwnerResponse;
+        public DatasetResponse              Dataset(DatasetRequest req)                         => MakeRequest<DatasetRequest, DatasetResponse>("dataset", req) as DatasetResponse;
+        public DatasetCategoriesResponse    DatasetCategories(DatasetCategoriesRequest req)     => MakeRequest<DatasetCategoriesRequest, DatasetCategoriesResponse>("dataset-categories", req) as DatasetCategoriesResponse;
+
         /// <summary>
-        /// This method is used to provide the contact information of the data owner.
+        /// Make request to given endpoint url
         /// </summary>
-        /// <param name="req">Structure with request params</param>
+        /// <typeparam name="T">Type of request structure</typeparam>
+        /// <typeparam name="Y">Type of response structure</typeparam>
+        /// <param name="end_url">Url end</param>
+        /// <param name="req">Request structure</param>
         /// <returns></returns>
-        public DataOwnerResponse DataOwner(DataOwnerRequest req)
+        private object MakeRequest<T, Y>(string end_url, T req)
         {
             string content_json = JsonConvert.SerializeObject(req);
-            RestRequest req_message = constructPostMessage("data-owner", content_json);
+            RestRequest req_message = constructPostMessage(end_url, content_json);
             IRestResponse message = sendRequest(req_message);
 
-            DataOwnerResponse response = JsonConvert.DeserializeObject<DataOwnerResponse>(message.Content.ToString())
+            Y response = JsonConvert.DeserializeObject<Y>(message.Content.ToString())
                                         ?? throw new USGSResponseNullException();
-
-            return response;
-        }
-
-        public DatasetResponse Dataset(DatasetRequest req)
-        {
-            string content_json = JsonConvert.SerializeObject(req);
-            RestRequest req_message = constructPostMessage("dataset", content_json);
-            IRestResponse message = sendRequest(req_message);
-
-            DatasetResponse response = JsonConvert.DeserializeObject<DatasetResponse>(message.Content.ToString())
-                                        ?? throw new USGSResponseNullException();
-
             return response;
         }
 
