@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
-using System.Text;
 using System.Net.Http;
+using System.Text;
 
 using Newtonsoft.Json;
 
@@ -19,19 +19,34 @@ namespace BulkDownloader
     public class Downloader
     {
         /// <summary>
+        /// URI to USGS API
+        /// </summary>
+        private const string USGS_URL = @"https://m2m.cr.usgs.gov/api/api/json/stable/";
+
+        /// <summary>
         /// Http client for communication purposes with USGS site
         /// </summary>
         private IRestClient _client = new RestClient();
 
         /// <summary>
-        /// URI to USGS API
-        /// </summary>
-        private readonly string USGS_URL = @"https://m2m.cr.usgs.gov/api/api/json/stable/";
-
-        /// <summary>
         /// API Token, which is recieved while authorization
         /// </summary>
-        private readonly string _token;
+        private Token _token;
+
+        /// <summary>
+        /// User e-mail
+        /// </summary>
+        private readonly string _email;
+
+        /// <summary>
+        /// User password
+        /// </summary>
+        private readonly string _password;
+
+        /// <summary>
+        /// String representation of this application
+        /// </summary>
+        private readonly string downloadApplication;
 
         /// <summary>
         /// Create Downloader instance and authorize on USGS site
@@ -40,18 +55,23 @@ namespace BulkDownloader
         /// <param name="password">USGS confirmed account password</param>
         public Downloader(string email, string password)
         {
-            AuthRequest req = new AuthRequest(email, password);
+            _email = email;
+            _password = password;
+
+            downloadApplication = "NET-Core-BulkDownloader (C#) Platform/Windows";
+            
+            updateToken();
+        }
+
+        private void updateToken()
+        {
+            AuthRequest req = new AuthRequest(_email, _password);
 
             RestRequest req_message = new RestRequest(USGS_URL + "login", Method.POST);
             req_message.RequestFormat = DataFormat.Json;
 
             string content_json = JsonConvert.SerializeObject(req);
             req_message.AddJsonBody(content_json);
-
-            //HttpRequestMessage req_message = new HttpRequestMessage(HttpMethod.Get, new Uri(USGS_URL + "login"));
-
-            //req_message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("{ \"username\": \"flexlug\", \"password\": \"Kjvjyjcjd123456789\" }");
-
 
             IRestResponse message = _client.Execute(req_message);
 
@@ -60,7 +80,7 @@ namespace BulkDownloader
                 AuthResponse response = JsonConvert.DeserializeObject<AuthResponse>(message.Content.ToString()) ?? throw new USGSResponseNullException(); ;
 
                 if (!string.IsNullOrEmpty(response.Token))
-                    _token = response.Token;
+                    _token = new Token(response.Token);
                 else
                     throw new USGSInvalidTokenException();
             }
