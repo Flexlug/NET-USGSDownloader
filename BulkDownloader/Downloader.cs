@@ -31,7 +31,7 @@ namespace BulkDownloader
         /// <summary>
         /// API Token, which is recieved while authorization
         /// </summary>
-        private Token _token;
+        private Token _token = null;
 
         /// <summary>
         /// User e-mail
@@ -63,31 +63,66 @@ namespace BulkDownloader
             updateToken();
         }
 
+        /// <summary>
+        /// This method is used to provide the contact information of the data owner.
+        /// </summary>
+        /// <param name="req">Structure with request params</param>
+        /// <returns></returns>
+        public DataOwnerResponse DataOwner(DataOwnerRequest req)
+        {
+            string content_json = JsonConvert.SerializeObject(req);
+            RestRequest req_message = constructPostMessage("data-owner", content_json);
+            IRestResponse message = sendRequest(req_message);
+
+            DataOwnerResponse response = JsonConvert.DeserializeObject<DataOwnerResponse>(message.Content.ToString())
+                                        ?? throw new USGSResponseNullException();
+
+            return response;
+        }
+
         private void updateToken()
         {
             AuthRequest req = new AuthRequest(_email, _password);
 
-            RestRequest req_message = new RestRequest(USGS_URL + "login", Method.POST);
-            req_message.RequestFormat = DataFormat.Json;
-
             string content_json = JsonConvert.SerializeObject(req);
-            req_message.AddJsonBody(content_json);
+            RestRequest req_message = constructPostMessage("login", content_json, false);
+            IRestResponse message = sendRequest(req_message);
 
+            AuthResponse response = JsonConvert.DeserializeObject<AuthResponse>(message.Content.ToString()) 
+                                        ?? throw new USGSResponseNullException();
+
+            if (!string.IsNullOrEmpty(response.Token))
+                _token = new Token(response.Token);
+            else
+                throw new USGSNoTokenException();
+        }
+
+        private IRestResponse sendRequest(RestRequest req_message)
+        {
             IRestResponse message = _client.Execute(req_message);
 
             if (message.StatusCode == HttpStatusCode.OK)
-            {
-                AuthResponse response = JsonConvert.DeserializeObject<AuthResponse>(message.Content.ToString()) ?? throw new USGSResponseNullException(); ;
-
-                if (!string.IsNullOrEmpty(response.Token))
-                    _token = new Token(response.Token);
-                else
-                    throw new USGSInvalidTokenException();
-            }
+                return message;
             else
-            {
                 throw new USGSUnauthorizedException();
+        }
+
+        private RestRequest constructPostMessage(string url_end, string content, bool needToken = true)
+        {
+            RestRequest req_message = new RestRequest(USGS_URL + url_end, Method.POST);
+
+            req_message.RequestFormat = DataFormat.Json;
+            req_message.AddJsonBody(content);
+
+            if (needToken)
+            {
+                if (!_token.IsValid())
+                    updateToken();
+
+                req_message.AddHeader("X-Auth-Token", _token.ToString());
             }
+
+            return req_message;
         }
     }
 }
