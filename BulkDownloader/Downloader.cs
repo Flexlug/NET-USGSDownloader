@@ -79,6 +79,7 @@ namespace BulkDownloader
         public DownloadRetrieveResponse     DownloadRetrieve(DownloadRetrieveRequest req)       => MakeRequest<DownloadRetrieveRequest, DownloadRetrieveResponse>("download-retrieve", req) as DownloadRetrieveResponse;
         public SceneListAddResponse         SceneListAdd(SceneListAddRequest req)               => MakeRequest<SceneListAddRequest, SceneListAddResponse>("scene-list-add", req) as SceneListAddResponse;
         public SceneListGetResponse         SceneListGet(SceneListGetRequest req)               => MakeRequest<SceneListGetRequest, SceneListGetResponse>("scene-list-get", req) as SceneListGetResponse;
+        public SceneListRemoveResponse      SceneListRemove(SceneListRemoveRequest req)         => MakeRequest<SceneListRemoveRequest, SceneListRemoveResponse>("scene-list-remove", req) as SceneListRemoveResponse;
 
         /// <summary>
         /// Disactivate current token
