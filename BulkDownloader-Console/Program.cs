@@ -40,7 +40,12 @@ namespace BulkDownloader_Console
             //    }
             //});
 
+            downloader.DownloadRetrieve(new BulkDownloader.RequestTemplates.DownloadRetrieveRequest()
+            {
+                DownloadApplication = downloader.DownloadApplication
+            });
 
+            downloader.Logout();
 
             Console.WriteLine("OK");
         }

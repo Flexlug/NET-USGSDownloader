@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -10,7 +11,6 @@ using RestSharp;
 using BulkDownloader.Exceptions;
 using BulkDownloader.RequestTemplates;
 using BulkDownloader.ResponseTemplates;
-using System.IO;
 
 namespace BulkDownloader
 {
@@ -77,6 +77,19 @@ namespace BulkDownloader
         public DownloadLabelsResponse       DownloadLabels(DownloadLabelsRequest req)           => MakeRequest<DownloadLabelsRequest, DownloadLabelsResponse>("download-labels", req) as DownloadLabelsResponse;
         public DownloadOrderLoadResponse    DownloadOrderLoad(DownloadOrderLoadRequest req)     => MakeRequest<DownloadOrderLoadRequest, DownloadOrderLoadResponse>("download-order-load", req) as DownloadOrderLoadResponse;
         public DownloadRetrieveResponse     DownloadRetrieve(DownloadRetrieveRequest req)       => MakeRequest<DownloadRetrieveRequest, DownloadRetrieveResponse>("download-retrieve", req) as DownloadRetrieveResponse;
+        public SceneListAddResponse         SceneListAdd(SceneListAddRequest req)               => MakeRequest<SceneListAddRequest, SceneListAddResponse>("scene-list-add", req) as SceneListAddResponse;
+
+        /// <summary>
+        /// Disactivate current token
+        /// </summary>
+        public void Logout()
+        {
+            // Send empty request with included token in header
+
+            RestRequest req_message = new RestRequest(USGS_URL + "logout", Method.POST); 
+            req_message.AddHeader("X-Auth-Token", _token.ToString());
+            IRestResponse message = sendRequest(req_message);
+        }
 
         /// <summary>
         /// Make request to given endpoint url
