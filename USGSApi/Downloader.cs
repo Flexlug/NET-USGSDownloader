@@ -19,6 +19,7 @@ using System.Collections.Specialized;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using USGSApi.Intrefaces;
 
 namespace USGSApi
 {
@@ -43,6 +44,11 @@ namespace USGSApi
         private Token _token = null;
 
         /// <summary>
+        /// Логгер
+        /// </summary>
+        private IUSGSLogger _logger = null;
+
+        /// <summary>
         /// E-Mail пользователя
         /// </summary>
         private readonly string _email;
@@ -62,13 +68,15 @@ namespace USGSApi
         /// </summary>
         /// <param name="email">E-mail от аккаунта USGS</param>
         /// <param name="password">Пароль от аккаунта USGS</param>
-        public Downloader(string email, string password)
+        public Downloader(string email, string password, IUSGSLogger logger = null)
         {
             _email = email;
             _password = password;
 
             DownloadApplication = $"NET-USGSDownloader-{DateTime.Now.Year}-{DateTime.Now.DayOfWeek}";
-            
+
+            _logger = logger ?? new DummyLogger();
+
             // Надстройка на JSON сериализатором. Игнорировать null поля
             JsonSerializer.CreateDefault(new JsonSerializerSettings()
             {
@@ -112,6 +120,12 @@ namespace USGSApi
         {
             WebClient client = new WebClient();
 
+            bool isDownloading = true;
+
+            // Настраиваем клиент загрузки
+            client.DownloadProgressChanged += (ev, e) => Task.Run(() => _logger.LogDownload(e.ProgressPercentage, e.BytesReceived, e.TotalBytesToReceive));
+            client.DownloadFileCompleted += (ev, e) => Task.Run(() => _logger.LogSuccess("Download", "Download complete!"));
+
             // Нет публичных методов, которые позволили бы качать снимки через USGS M2M API
             // Поэтому мы используем сервис USGS EarthExplorer, из которого мы вытягиваем ссылки на снимки
             // А для ссылок нам понадобятся раннее полученные id снимка и датасета
@@ -120,58 +134,43 @@ namespace USGSApi
             RestRequest req1 = new RestRequest($@"https://earthexplorer.usgs.gov/scene/downloadoptions/{datasetId}/{entityId}/");
             req1.Method = Method.POST;
 
-            Console.WriteLine($"Prepairing download - datasetId:{datasetId}, entityId:{entityId}");
-            Console.WriteLine("Getting product id...");
+            _logger.LogInfo("Download", $"Prepairing download - datasetId:{datasetId}, entityId: {entityId}");
+            _logger.LogInfo("Download", "Getting product id...");
 
             IRestResponse resp1 = _client.Execute(req1);
 
-            // TODO пусть качает все полученные product id а не самый первый попавшийся
 
             // Парсим product id
             HtmlDocument doc = new HtmlDocument();
             doc.LoadHtml(resp1.Content);
-            HtmlNode node = doc.DocumentNode.SelectSingleNode(".//button[@class='btn btn-secondary downloadButton']");
-            string productId = node.GetAttributeValue("data-productId", string.Empty);
+            HtmlNodeCollection node = doc.DocumentNode.SelectNodes(".//button[@class='btn btn-secondary downloadButton']");
+            string[] productIdArray = node.Select(x => x.GetAttributeValue("data-productId", string.Empty)).ToArray();
 
-            if (string.IsNullOrEmpty(productId))
+            // Product id может быть несколько. Обрабатываем каждый
+            foreach (string productId in productIdArray)
             {
-                Console.WriteLine("Can't find product id");
-                return;
-            }
-
-            Console.WriteLine($"Got product id. Value: {productId}");
-            
-            // Качаем файл по product id
-
-            string save_file = $"{entityId}-{DateTime.Now.Ticks}.ZIP";
-            
-            Console.WriteLine($"File will be saved as: {save_file}");
-            Console.WriteLine("Starting download...");
-
-            // Начинаем загрузку
-            bool isDownloading = true;
-
-            client.DownloadProgressChanged +=  (ev, e) =>
-            {
-                Task.Run(() =>
+                if (string.IsNullOrEmpty(productId))
                 {
-                    DownloadProgressChangedEventArgs args = e;
-                    Console.WriteLine($"{String.Format("{0, 4}%  {1, 8}kb of {2, 8}kb", args.ProgressPercentage, args.BytesReceived / 1024, args.TotalBytesToReceive / 1024)}");
-                });
-            };
-            client.DownloadFileCompleted += (ev, e) =>
-            {
-                Task.Run(() => 
-                { 
-                    Console.WriteLine("Download complete!");
-                    isDownloading = false;
-                });
-            };
+                    _logger.LogError("Download", "Can't find product id");
+                    return;
+                }
 
-            client.DownloadFileAsync(new Uri($@"https://earthexplorer.usgs.gov/download/{productId}/{entityId}/EE/"), $"{save_file}");
+                _logger.LogSuccess("Download", $"Got product id. Value: {productId}");
 
-            // Тормозим поток, чтобы избежать размножения загрузок
-            while (isDownloading) { Thread.Sleep(1000); }
+                // Качаем файл по product id
+
+                string save_file = $"{entityId}-{DateTime.Now.Ticks}.ZIP";
+
+                _logger.LogInfo("Download", $"File will be saved as: {save_file}");
+                _logger.LogInfo("Download", "Starting download...");
+
+                // Начинаем загрузку
+                isDownloading = true;
+                client.DownloadFileAsync(new Uri($@"https://earthexplorer.usgs.gov/download/{productId}/{entityId}/EE/"), $"{save_file}");
+
+                // Тормозим поток, чтобы избежать размножения загрузок
+                while (isDownloading) { Thread.Sleep(1000); }
+            }
         }
 
 
@@ -210,7 +209,10 @@ namespace USGSApi
             if (!string.IsNullOrEmpty(response.Token))
                 _token = new Token(response.Token);
             else
+            {
+                _logger.LogError("sendRequest", "Recieved response with not OK code. Check authorization credentials");
                 throw new USGSNoTokenException();
+            }
         }
 
         /// <summary>
@@ -223,13 +225,11 @@ namespace USGSApi
 
             if (message.StatusCode == HttpStatusCode.OK)
             {
-                using (StreamWriter sr = new StreamWriter($"./responses/resp-{DateTime.Now.Ticks}.json"))
-                    sr.WriteLine(message.Content);
-
                 return message;
             }
             else 
             {
+                _logger.LogError("sendRequest", "Recieved response with not OK code. Check authorization credentials");
                 throw new USGSUnauthorizedException(); 
             }
         }

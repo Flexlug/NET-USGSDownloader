@@ -2,7 +2,7 @@
   "profiles": {
     "BulkDownloader-Console": {
       "commandName": "Project",
-      "commandLineArgs": "usgs_geojson.s.geojson"
+      "commandLineArgs": "usgs_geojson.geojson"
     }
   }
 }

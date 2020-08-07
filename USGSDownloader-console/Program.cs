@@ -18,49 +18,52 @@ namespace USGSDownloader
         static void Main(string[] args)
         {
             Downloader downloader = null;
+            ConsoleLogger logger = new ConsoleLogger();
 
             // Авторизация
             if (File.Exists("credentials.json"))
             {
+                logger.LogInfo("main", "Starting authorization");
+
                 LoginFile credentials;
                 using (StreamReader sr = new StreamReader("credentials.json"))
                     credentials = JsonConvert.DeserializeObject<LoginFile>(sr.ReadToEnd()) ?? throw new Exception("Invalid credentails");
 
-                downloader = new Downloader(credentials.Login, credentials.Password);
-                Console.WriteLine("Login successful");
+                downloader = new Downloader(credentials.Login, credentials.Password, logger);
+                logger.LogSuccess("main", "Authorisation complete.");
             }
 
             // Считывание аргументов запуска программы
             if (args.Length != 0)
             {
-                Console.WriteLine($"Got {args.Length} params.");
+                logger.LogInfo("main", "Got { args.Length} file paths.");
                 foreach (string path in args)
                 {
-                    Console.Write($"Validating path {path}: ");
+                    logger.LogInfo("main", $"Validating path {path}: ");
                     if (File.Exists(path))
                     {
-                        Console.WriteLine("OK");
+                        logger.LogSuccess("main", $"Validated {path}. OK");
 
                         // Считываем входной json файл
                         string raw_json = string.Empty;
                         using (StreamReader sr = new StreamReader(path))
                             raw_json = sr.ReadToEnd();
 
-                        Console.Write("Deserialization: ");
+                        logger.LogInfo("main", "Deserialization: ");
                         FeatureCollection fc = JsonConvert.DeserializeObject<FeatureCollection>(raw_json) ?? null;
 
                         if (fc == null)
                         {
-                            Console.WriteLine("FAIL");
-                            Console.WriteLine($"Cannot deserialize geojson from file {path}");
+                            logger.LogError("main", $"Deserialization failure. Check geojson file {path}");
+                            logger.LogInfo("main", $"Skipping {path}");
                             continue;
                         }
                         else
                         {
-                            Console.WriteLine("OK");
+                            logger.LogSuccess("main", $"Deserialized {path}. OK");
                         }
 
-                        Console.Write("Requesting avaliable datasets for setted region: ");
+                        logger.LogInfo("main", "Requesting avaliable datasets for setted region: ");
 
                         // Ищем доступные dataset, из которых можно скачать снимки
                         DatasetSearchRequest dsr = new DatasetSearchRequest();
@@ -77,22 +80,24 @@ namespace USGSDownloader
 
                         if (!string.IsNullOrEmpty(dsronse.ErrorMessage))
                         {
-                            Console.WriteLine("FAIL");
-                            Console.WriteLine($"Server return error: {dsronse.ErrorMessage}. Code: {dsronse.ErrorCode}");
+                            logger.LogError("main", $"Server return error: {dsronse.ErrorMessage}. Code: {dsronse.ErrorCode}");
+                            logger.LogInfo("main", $"Skipping {path}");
                             continue;
                         }
 
                         if (dsronse.Data == null)
                         {
-                            Console.WriteLine("No avaliable databases");
+                            logger.LogError("main", $"No avaliable datasets");
+                            logger.LogInfo("main", $"Skipping {path}");
                             continue;
                         }
 
-                        Console.WriteLine($"Found {dsronse.Data.Count} databases");
+                        logger.LogSuccess("main", $"Found {dsronse.Data.Count} databases");
 
                         // Берём первый датасет (обычно их очень много)
                         DatasetSearchResponse.DataStruct data = dsronse.Data.First();
-                        Console.WriteLine($"Using database. id: {data.DatasetId}, name: {data.DatasetAlias}");
+                        logger.LogInfo("main", $"Using database. id: {data.DatasetId}, name: {data.DatasetAlias}");
+                        logger.LogInfo("main", $"Requesting Entity Ids");
 
                         // Получаем ID картинок
                         List<SceneSearchResponse.DataStruct.ResultStruct> results = new List<SceneSearchResponse.DataStruct.ResultStruct>();
@@ -119,10 +124,12 @@ namespace USGSDownloader
                         }
                         else
                         {
-                            Console.WriteLine("No results");
+                            logger.LogError("main", "No results for current dataset");
+                            logger.LogInfo("main", $"Skipping {path}");
                         }
 
-                        Console.WriteLine($"Got {results.Count} entities");
+
+                        logger.LogSuccess("main", $"Got {results.Count} entities");
 
                         // Качем каждую картинку по ID картинки и датасета
                         foreach (var res in results)
@@ -133,14 +140,19 @@ namespace USGSDownloader
                             downloader.Download(data.DatasetId, res.EntityId);
                         }
                     }
+                    else
+                    {
+                        logger.LogError("main", "Can not find file");
+                        logger.LogInfo("main", $"Skipping {path}");
+                    }
                 }
             }
             else
             {
-                Console.WriteLine("No input files");
+                logger.LogInfo("main", "No input files");
             }
 
-            Console.WriteLine("Complete!");
+            Console.WriteLine("Done");
 
             downloader.Logout();
         }
