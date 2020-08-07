@@ -23,53 +23,53 @@ using System.Threading;
 namespace BulkDownloader
 {
     /// <summary>
-    /// Main class for download purposes
+    /// Главный класс для взаимодействия с USGS M2M API и загрузок
     /// </summary>
     public class Downloader
     {
         /// <summary>
-        /// URI to USGS API
+        /// URL до USGS M2M API
         /// </summary>
         private const string USGS_URL = @"https://m2m.cr.usgs.gov/api/api/json/stable/";
 
         /// <summary>
-        /// Http client for communication purposes with USGS site
+        /// Http клиент для взаимодействия с API
         /// </summary>
         private IRestClient _client = new RestClient();
 
         /// <summary>
-        /// API Token, which is recieved while authorization
+        /// API токен. Получается при авторизации
         /// </summary>
         private Token _token = null;
 
         /// <summary>
-        /// User e-mail
+        /// E-Mail пользователя
         /// </summary>
         private readonly string _email;
 
         /// <summary>
-        /// User password
+        /// Пароль пользователя
         /// </summary>
         private readonly string _password;
 
         /// <summary>
-        /// String representation of this application
+        /// Название приложения. Вкладывается в заголовок запроса
         /// </summary>
         public readonly string DownloadApplication;
 
         /// <summary>
-        /// Create Downloader instance and authorize on USGS site
+        /// Создаёт экземпляр класса Downloader и получает токен
         /// </summary>
-        /// <param name="email">USGS confirmed account E-mail</param>
-        /// <param name="password">USGS confirmed account password</param>
+        /// <param name="email">E-mail от аккаунта USGS</param>
+        /// <param name="password">Пароль от аккаунта USGS</param>
         public Downloader(string email, string password)
         {
             _email = email;
             _password = password;
 
-            DownloadApplication = $"NET-BulkDownloader-{DateTime.Now.Year}-{DateTime.Now.DayOfWeek}";
+            DownloadApplication = $"NET-USGSDownloader-{DateTime.Now.Year}-{DateTime.Now.DayOfWeek}";
             
-            // Do not serialize null fields
+            // Надстройка на JSON сериализатором. Игнорировать null поля
             JsonSerializer.CreateDefault(new JsonSerializerSettings()
             {
                 NullValueHandling = NullValueHandling.Ignore
@@ -92,24 +92,31 @@ namespace BulkDownloader
         public SceneSearchResponse          SceneSearch(SceneSearchRequest req)                 => MakeRequest<SceneSearchRequest, SceneSearchResponse>("scene-search", req) as SceneSearchResponse;
 
         /// <summary>
-        /// Disactivate current token
+        /// Разлогиниться и аннулировать токен
         /// </summary>
         public void Logout()
         {
-            // Send empty request with included token in header
+            // Отсылаем пустой запрос с токеном
 
             RestRequest req_message = new RestRequest(USGS_URL + "logout", Method.POST); 
             req_message.AddHeader("X-Auth-Token", _token.ToString());
             IRestResponse message = sendRequest(req_message);
         }
 
-        //public void Download(string url, string file_path)
+        /// <summary>
+        /// Начать загрузку файла по ID снимка и ID датасета
+        /// </summary>
+        /// <param name="datasetId">ID датасета, в котором содержится снимок</param>
+        /// <param name="entityId">ID снимка</param>
         public void Download(string datasetId, string entityId)
         {
-            // Init client
             WebClient client = new WebClient();
 
-            // Init first request
+            // Нет публичных методов, которые позволили бы качать снимки через USGS M2M API
+            // Поэтому мы используем сервис USGS EarthExplorer, из которого мы вытягиваем ссылки на снимки
+            // А для ссылок нам понадобятся раннее полученные id снимка и датасета
+
+            // 1. Сперва получаем product id, потому что снимок может содержаться в нескольких форматах
             RestRequest req1 = new RestRequest($@"https://earthexplorer.usgs.gov/scene/downloadoptions/{datasetId}/{entityId}/");
             req1.Method = Method.POST;
 
@@ -118,13 +125,14 @@ namespace BulkDownloader
 
             IRestResponse resp1 = _client.Execute(req1);
 
-            // Parse
+            // TODO пусть качает все полученные product id а не самый первый попавшийся
+
+            // Парсим product id
             HtmlDocument doc = new HtmlDocument();
             doc.LoadHtml(resp1.Content);
             HtmlNode node = doc.DocumentNode.SelectSingleNode(".//button[@class='btn btn-secondary downloadButton']");
             string productId = node.GetAttributeValue("data-productId", string.Empty);
 
-            // Check if parsing successful
             if (string.IsNullOrEmpty(productId))
             {
                 Console.WriteLine("Can't find product id");
@@ -132,37 +140,22 @@ namespace BulkDownloader
             }
 
             Console.WriteLine($"Got product id. Value: {productId}");
-
-            // Init seconds request
-            //string req2_s = $@"https://earthexplorer.usgs.gov/download/{productId}/{entityId}/EE/";
-            //Console.WriteLine($"Requesting json with download url from {req2_s}");
-            //RestRequest req2 = new RestRequest(req2_s);
-            //req2.RequestFormat = DataFormat.Json;
-            //req2.Method = Method.POST;
-
-            //IRestResponse resp2 = _client.Execute(req2);
-
-            //DownloadMiddleState resp2_json = JsonConvert.DeserializeObject<DownloadMiddleState>(resp2.Content);
-
-            //Console.WriteLine($"Got download url: {(string.IsNullOrEmpty(resp2_json.Url) ? string.Empty : resp2_json.Url)}");
-            //if (string.IsNullOrEmpty(resp2_json.Url))
-            //{
-            //    Console.WriteLine("No url");
-            //    return;
-            //}
+            
+            // Качаем файл по product id
 
             string save_file = $"{entityId}-{DateTime.Now.Ticks}.ZIP";
-
+            
             Console.WriteLine($"File will be saved as: {save_file}");
             Console.WriteLine("Starting download...");
 
+            // Начинаем загрузку
             bool isDownloading = true;
 
             client.DownloadProgressChanged +=  (ev, e) =>
             {
                 Task.Run(() =>
                 {
-                    DownloadProgressChangedEventArgs args = (DownloadProgressChangedEventArgs)e;
+                    DownloadProgressChangedEventArgs args = e;
                     Console.WriteLine($"{String.Format("{0, 4}%  {1, 8}kb of {2, 8}kb", args.ProgressPercentage, args.BytesReceived / 1024, args.TotalBytesToReceive / 1024)}");
                 });
             };
@@ -174,40 +167,21 @@ namespace BulkDownloader
                     isDownloading = false;
                 });
             };
-            //client.DownloadFileAsync(new Uri($@"{resp2_json.Url}dds_{((bool)resp2_json.IsPending ? "pending" : "download")}"), $"{entityId}.ZIP");
-
-            //$"{entityId}.ZIP"
 
             client.DownloadFileAsync(new Uri($@"https://earthexplorer.usgs.gov/download/{productId}/{entityId}/EE/"), $"{save_file}");
-            //client.DownloadData(req2).SaveAs("IK220050808060001M00.zip");
 
-            // Stop thread while downloading
+            // Тормозим поток, чтобы избежать размножения загрузок
             while (isDownloading) { Thread.Sleep(1000); }
         }
 
-        // WRONG APPLICATION ERROR (???)
-        //
-        //public string OrderSubmit()
-        //{
-        //    // Send empty request with included token in header
-
-        //    RestRequest req_message = new RestRequest(USGS_URL + "order-submit", Method.POST);
-        //    req_message.AddHeader("X-Auth-Token", _token.ToString());
-        //    IRestResponse message = sendRequest(req_message);
-
-        //    return message.Content;
-        //}
-
-
 
         /// <summary>
-        /// Make request to given endpoint url
+        /// Отправить запрос на выбранный URL endpoint
         /// </summary>
-        /// <typeparam name="T">Type of request structure</typeparam>
-        /// <typeparam name="Y">Type of response structure</typeparam>
-        /// <param name="end_url">Url end</param>
-        /// <param name="req">Request structure</param>
-        /// <returns></returns>
+        /// <typeparam name="T">Тип JSON структуры запроса</typeparam>
+        /// <typeparam name="Y">Тип JSON структуры ответа</typeparam>
+        /// <param name="end_url">Url endpoint</param>
+        /// <param name="req">Инстанс структуры с запросом</param>
         private object MakeRequest<T, Y>(string end_url, T req)
         {
             string content_json = JsonConvert.SerializeObject(req);
@@ -219,6 +193,9 @@ namespace BulkDownloader
             return response;
         }
 
+        /// <summary>
+        /// Запросить новый токен
+        /// </summary>
         private void updateToken()
         {
             AuthRequest req = new AuthRequest(_email, _password);
@@ -236,6 +213,10 @@ namespace BulkDownloader
                 throw new USGSNoTokenException();
         }
 
+        /// <summary>
+        /// Отправить запрос на USGS M2M API
+        /// </summary>
+        /// <param name="req_message">Готовый http запрос</param>
         private IRestResponse sendRequest(RestRequest req_message)
         {
             IRestResponse message = _client.Execute(req_message);
@@ -253,6 +234,12 @@ namespace BulkDownloader
             }
         }
 
+        /// <summary>
+        /// Собрать http запрос с нужными параметрами
+        /// </summary>
+        /// <param name="url_end">Url endpoint</param>
+        /// <param name="content">JSON в виде строки</param>
+        /// <param name="needToken">Если true, в загаловок запроса будет вложен токен</param>
         private RestRequest constructPostMessage(string url_end, string content, bool needToken = true)
         {
             RestRequest req_message = new RestRequest(USGS_URL + url_end, Method.POST);

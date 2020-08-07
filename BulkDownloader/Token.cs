@@ -5,7 +5,7 @@ using System.Text;
 namespace BulkDownloader
 {
     /// <summary>
-    /// Token storage with validation
+    /// Структура с токеном и временем его создания
     /// </summary>
     public class Token
     {
@@ -13,7 +13,7 @@ namespace BulkDownloader
         private string _token;
 
         /// <summary>
-        /// Create token
+        /// Создать токен
         /// </summary>
         /// <param name="_token">Token</param>
         public Token(string _token)
@@ -23,7 +23,7 @@ namespace BulkDownloader
         }
 
         /// <summary>
-        /// Checks, if token is outdated
+        /// Проверяет, можно ли ещё использовать токен (токен доступен только 2 часа)
         /// </summary>
         public bool IsValid()
         {
