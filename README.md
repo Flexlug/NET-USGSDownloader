@@ -34,8 +34,12 @@ USGSDownloader-Console.exe file.geojson
 ```
 
 
+file.geojson - входной файл с параметрами для загрузки.
+
+
 Пример входного файла geojson:
 ```json
+#file.geojson
 {
   "type": "FeatureCollection",
   "name": "usgs",
@@ -63,5 +67,3 @@ USGSDownloader-Console.exe file.geojson
   ]
 }
 ```
-
-file.geojson - входной файл с параметрами для загрузки.
