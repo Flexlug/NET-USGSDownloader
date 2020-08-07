@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BulkDownloader.RequestTemplates
+namespace USGSApi.RequestTemplates
 {
     /// <summary>
     /// Structure with dataset request params

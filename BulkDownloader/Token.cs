@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BulkDownloader
+namespace USGSApi
 {
     /// <summary>
     /// Структура с токеном и временем его создания

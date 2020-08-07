@@ -4,7 +4,7 @@ using System.Text;
 
 using Newtonsoft.Json;
 
-namespace BulkDownloader_Console.InputTypes
+namespace USGSDownloader.InputTypes
 {
     public class FeatureCollection
     {

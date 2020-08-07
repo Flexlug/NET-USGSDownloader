@@ -4,7 +4,7 @@ using System.Text;
 
 using Newtonsoft.Json;
 
-namespace BulkDownloader.RequestTemplates
+namespace USGSApi.RequestTemplates
 {
     public class SceneListGetRequest
     {

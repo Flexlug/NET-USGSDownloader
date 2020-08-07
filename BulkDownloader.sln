@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BulkDownloader", "BulkDownloader\BulkDownloader.csproj", "{A701AF1D-7E17-4B98-AE65-C03AF389FF77}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "USGS_Api", "BulkDownloader\USGS_Api.csproj", "{A701AF1D-7E17-4B98-AE65-C03AF389FF77}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BulkDownloader-Console", "BulkDownloader-Console\BulkDownloader-Console.csproj", "{4F326952-751D-43AA-829B-743A6DFDF3C5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "USGSDownloader-Console", "BulkDownloader-Console\USGSDownloader-Console.csproj", "{4F326952-751D-43AA-829B-743A6DFDF3C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

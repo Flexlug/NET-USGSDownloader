@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BulkDownloader.ResponseTemplates
+namespace USGSApi.ResponseTemplates
 {
     public class SceneSearchResponse
     {

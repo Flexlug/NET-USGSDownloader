@@ -4,7 +4,7 @@ using System.Text;
 
 using Newtonsoft.Json;
 
-namespace BulkDownloader.RequestTemplates
+namespace USGSApi.RequestTemplates
 {
     /// <summary>
     /// Structure with data-owner request params

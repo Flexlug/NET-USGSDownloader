@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using BulkDownloader;
-using BulkDownloader.RequestTemplates;
-using BulkDownloader.ResponseTemplates;
 
-using BulkDownloader_Console.InputTypes;
 using Newtonsoft.Json;
 
-namespace BulkDownloader_Console
+using USGSApi;
+using USGSApi.RequestTemplates;
+using USGSApi.ResponseTemplates;
+
+using USGSDownloader.InputTypes;
+
+namespace USGSDownloader
 {
     class Program
     {

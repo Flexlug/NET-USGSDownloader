@@ -2,7 +2,7 @@
 using System.Net.Http;
 
 
-namespace BulkDownloader.Exceptions
+namespace USGSApi.Exceptions
 {
     /// <summary>
     /// Raised when authorizaton process did not return OK status code

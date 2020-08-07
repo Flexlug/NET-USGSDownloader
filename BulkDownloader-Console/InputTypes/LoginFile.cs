@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BulkDownloader_Console.InputTypes
+namespace USGSDownloader.InputTypes
 {
     public class LoginFile
     {

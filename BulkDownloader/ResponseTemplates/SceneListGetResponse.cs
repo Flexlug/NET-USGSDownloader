@@ -4,7 +4,7 @@ using System.Text;
 
 using Newtonsoft.Json;
 
-namespace BulkDownloader.ResponseTemplates
+namespace USGSApi.ResponseTemplates
 {
     public class SceneListGetResponse
     {

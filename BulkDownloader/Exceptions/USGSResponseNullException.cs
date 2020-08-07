@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BulkDownloader.Exceptions
+namespace USGSApi.Exceptions
 {
     /// <summary>
     /// Raised when JSON auth response deserialisation returns null

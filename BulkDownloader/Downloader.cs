@@ -10,9 +10,9 @@ using Newtonsoft.Json;
 using RestSharp;
 using RestSharp.Extensions;
 
-using BulkDownloader.Exceptions;
-using BulkDownloader.RequestTemplates;
-using BulkDownloader.ResponseTemplates;
+using USGSApi.Exceptions;
+using USGSApi.RequestTemplates;
+using USGSApi.ResponseTemplates;
 
 using HtmlAgilityPack;
 using System.Collections.Specialized;
@@ -20,7 +20,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace BulkDownloader
+namespace USGSApi
 {
     /// <summary>
     /// Главный класс для взаимодействия с USGS M2M API и загрузок
