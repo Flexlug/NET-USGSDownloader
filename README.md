@@ -39,7 +39,8 @@ file.geojson - входной файл с параметрами для загр
 
 Пример входного файла geojson:
 ```json
-#file.geojson
+//file.geojson
+
 {
   "type": "FeatureCollection",
   "name": "usgs",
