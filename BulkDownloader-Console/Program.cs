@@ -15,8 +15,18 @@ namespace BulkDownloader_Console
     {
         static void Main(string[] args)
         {
+            Downloader downloader = null;
+
             // Авторизация
-            Downloader downloader = new Downloader("flexlug", "Kjvjyjcjd123456789");
+            if (File.Exists("credentials.json"))
+            {
+                LoginFile credentials;
+                using (StreamReader sr = new StreamReader("credentials.json"))
+                    credentials = JsonConvert.DeserializeObject<LoginFile>(sr.ReadToEnd()) ?? throw new Exception("Invalid credentails");
+
+                downloader = new Downloader(credentials.Login, credentials.Password);
+                Console.WriteLine("Login successful");
+            }
 
             // Считывание аргументов запуска программы
             if (args.Length != 0)
