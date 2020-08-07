@@ -10,13 +10,14 @@ namespace BulkDownloader.ResponseTemplates
     /// </summary>
     public class DownloadRetrieveResponse
     {
-
+        [JsonProperty("data")]
+        public DataStruct Data { get; set; }
 
         [JsonProperty("version")]
         public string Version { get; set; }
 
         [JsonProperty("errorCode")]
-        public int? ErrorCode { get; set; }
+        public string ErrorCode { get; set; }
 
         [JsonProperty("requestId")]
         public int? RequestId { get; set; }

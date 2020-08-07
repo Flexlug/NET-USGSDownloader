@@ -12,7 +12,7 @@ namespace BulkDownloader.RequestTemplates
     public class DownloadOrderLoadRequest
     {
         [JsonProperty("label")]
-        public List<string> Label { get; set; }
+        public string Label { get; set; }
 
         [JsonProperty("downloadApplication")]
         public string DownloadApplication { get; set; }

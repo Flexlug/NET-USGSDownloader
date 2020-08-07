@@ -1,0 +1,112 @@
+dataset - search
+{
+    "catalog": "string",
+    "datasetName": "string",
+    "includeMessages": "boolean",
+    "publicOnly": "boolean",
+    "temporalFilter": "TemporalFilter",
+    "spatialFilter": "SpatialFilter"
+}
+
+
+dataset - search(full)
+{
+    "catalog": "string",
+    "datasetName": "string",
+    "includeMessages": "boolean",
+    "publicOnly": "boolean",
+    "temporalFilter": "TemporalFilter",
+    "spatialFilter":
+    {
+        "filterType": "string",
+        "geoJson":
+        {
+            "type": "string",
+            "coordinates": ["coordinates"]
+        }
+    }
+}
+
+
+scene-search
+
+REQUEST
+{
+	"spatialFilter":
+	{
+    	"filterType": "geoJson",
+    	"geoJson":
+    	{
+        	"type": "Polygon",
+        	"coordinates": [
+            	[
+                	[4185299.027226740960032, 7491370.826211499981582],
+                	[4185299.027226740960032, 7510222.038758006878197],
+                	[4205782.715911296196282, 7510222.038758006878197],
+                	[4205782.715911296196282, 7491370.826211499981582],
+                	[4185299.027226740960032, 7491370.826211499981582]
+	            ]
+        	]
+	    }
+	}
+}
+
+RESPONSE:
+{
+	"requestId": 17242391, 
+	"version": "stable", 
+	"data": null, 
+	"errorCode": "INPUT_PARAMETER_INVALID", 
+	"errorMessage": "Invalid spatial filterType"
+}
+
+REQUEST:
+{
+   	"filterType": "geoJson",
+   	"geoJson":
+   	{
+       	"type": "Polygon",
+       	"coordinates": [
+            [
+               	[4185299.027226740960032, 7491370.826211499981582],
+               	[4185299.027226740960032, 7510222.038758006878197],
+               	[4205782.715911296196282, 7510222.038758006878197],
+               	[4205782.715911296196282, 7491370.826211499981582],
+               	[4185299.027226740960032, 7491370.826211499981582]
+	        ]
+        ]
+	}
+}
+
+RESPONSE:
+{ 
+	"requestId": 17247660, 
+	"version": "stable", 
+	"data": null, 
+	"errorCode": "SERVER_ERROR", 
+	"errorMessage": "API not configured to handle non-geojson spatials" 
+}
+
+SpatialFilter
+{
+    "abstract"
+}
+
+SpatialFilterMbr
+{
+    "filterType": "string",
+    "lowerLeft": "coordinate",
+    "upperRight": "coordinate"
+}
+
+SpatialFilterGeoJson
+{
+    "filterType": "string",
+    "geoJson": "GeoJson"
+}
+
+GeoJson
+{
+    "type": "string",
+    "coordinates": "coordinates[]"
+}

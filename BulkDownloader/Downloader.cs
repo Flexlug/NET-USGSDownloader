@@ -1,16 +1,24 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 
 using Newtonsoft.Json;
 
 using RestSharp;
+using RestSharp.Extensions;
 
 using BulkDownloader.Exceptions;
 using BulkDownloader.RequestTemplates;
 using BulkDownloader.ResponseTemplates;
+
+using HtmlAgilityPack;
+using System.Collections.Specialized;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace BulkDownloader
 {
@@ -59,7 +67,7 @@ namespace BulkDownloader
             _email = email;
             _password = password;
 
-            DownloadApplication = "NET-Core-BulkDownloader (C#) Platform/Windows";
+            DownloadApplication = $"NET-BulkDownloader-{DateTime.Now.Year}-{DateTime.Now.DayOfWeek}";
             
             // Do not serialize null fields
             JsonSerializer.CreateDefault(new JsonSerializerSettings()
@@ -80,6 +88,8 @@ namespace BulkDownloader
         public SceneListAddResponse         SceneListAdd(SceneListAddRequest req)               => MakeRequest<SceneListAddRequest, SceneListAddResponse>("scene-list-add", req) as SceneListAddResponse;
         public SceneListGetResponse         SceneListGet(SceneListGetRequest req)               => MakeRequest<SceneListGetRequest, SceneListGetResponse>("scene-list-get", req) as SceneListGetResponse;
         public SceneListRemoveResponse      SceneListRemove(SceneListRemoveRequest req)         => MakeRequest<SceneListRemoveRequest, SceneListRemoveResponse>("scene-list-remove", req) as SceneListRemoveResponse;
+        public SceneListSummaryResponse     SceneListSummary(SceneListSummaryRequest req)       => MakeRequest<SceneListSummaryRequest, SceneListSummaryResponse>("scene-list-summary", req) as SceneListSummaryResponse;
+        public SceneSearchResponse          SceneSearch(SceneSearchRequest req)                 => MakeRequest<SceneSearchRequest, SceneSearchResponse>("scene-search", req) as SceneSearchResponse;
 
         /// <summary>
         /// Disactivate current token
@@ -92,6 +102,103 @@ namespace BulkDownloader
             req_message.AddHeader("X-Auth-Token", _token.ToString());
             IRestResponse message = sendRequest(req_message);
         }
+
+        //public void Download(string url, string file_path)
+        public void Download(string datasetId, string entityId)
+        {
+            // Init client
+            WebClient client = new WebClient();
+
+            // Init first request
+            RestRequest req1 = new RestRequest($@"https://earthexplorer.usgs.gov/scene/downloadoptions/{datasetId}/{entityId}/");
+            req1.Method = Method.POST;
+
+            Console.WriteLine($"Prepairing download - datasetId:{datasetId}, entityId:{entityId}");
+            Console.WriteLine("Getting product id...");
+
+            IRestResponse resp1 = _client.Execute(req1);
+
+            // Parse
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(resp1.Content);
+            HtmlNode node = doc.DocumentNode.SelectSingleNode(".//button[@class='btn btn-secondary downloadButton']");
+            string productId = node.GetAttributeValue("data-productId", string.Empty);
+
+            // Check if parsing successful
+            if (string.IsNullOrEmpty(productId))
+            {
+                Console.WriteLine("Can't find product id");
+                return;
+            }
+
+            Console.WriteLine($"Got product id. Value: {productId}");
+
+            // Init seconds request
+            //string req2_s = $@"https://earthexplorer.usgs.gov/download/{productId}/{entityId}/EE/";
+            //Console.WriteLine($"Requesting json with download url from {req2_s}");
+            //RestRequest req2 = new RestRequest(req2_s);
+            //req2.RequestFormat = DataFormat.Json;
+            //req2.Method = Method.POST;
+
+            //IRestResponse resp2 = _client.Execute(req2);
+
+            //DownloadMiddleState resp2_json = JsonConvert.DeserializeObject<DownloadMiddleState>(resp2.Content);
+
+            //Console.WriteLine($"Got download url: {(string.IsNullOrEmpty(resp2_json.Url) ? string.Empty : resp2_json.Url)}");
+            //if (string.IsNullOrEmpty(resp2_json.Url))
+            //{
+            //    Console.WriteLine("No url");
+            //    return;
+            //}
+
+            string save_file = $"{entityId}-{DateTime.Now.Ticks}.ZIP";
+
+            Console.WriteLine($"File will be saved as: {save_file}");
+            Console.WriteLine("Starting download...");
+
+            bool isDownloading = true;
+
+            client.DownloadProgressChanged +=  (ev, e) =>
+            {
+                Task.Run(() =>
+                {
+                    DownloadProgressChangedEventArgs args = (DownloadProgressChangedEventArgs)e;
+                    Console.WriteLine($"{String.Format("{0, 4}%  {1, 8}kb of {2, 8}kb", args.ProgressPercentage, args.BytesReceived / 1024, args.TotalBytesToReceive / 1024)}");
+                });
+            };
+            client.DownloadFileCompleted += (ev, e) =>
+            {
+                Task.Run(() => 
+                { 
+                    Console.WriteLine("Download complete!");
+                    isDownloading = false;
+                });
+            };
+            //client.DownloadFileAsync(new Uri($@"{resp2_json.Url}dds_{((bool)resp2_json.IsPending ? "pending" : "download")}"), $"{entityId}.ZIP");
+
+            //$"{entityId}.ZIP"
+
+            client.DownloadFileAsync(new Uri($@"https://earthexplorer.usgs.gov/download/{productId}/{entityId}/EE/"), $"{save_file}");
+            //client.DownloadData(req2).SaveAs("IK220050808060001M00.zip");
+
+            // Stop thread while downloading
+            while (isDownloading) { Thread.Sleep(1000); }
+        }
+
+        // WRONG APPLICATION ERROR (???)
+        //
+        //public string OrderSubmit()
+        //{
+        //    // Send empty request with included token in header
+
+        //    RestRequest req_message = new RestRequest(USGS_URL + "order-submit", Method.POST);
+        //    req_message.AddHeader("X-Auth-Token", _token.ToString());
+        //    IRestResponse message = sendRequest(req_message);
+
+        //    return message.Content;
+        //}
+
+
 
         /// <summary>
         /// Make request to given endpoint url
@@ -135,7 +242,7 @@ namespace BulkDownloader
 
             if (message.StatusCode == HttpStatusCode.OK)
             {
-                using (StreamWriter sr = new StreamWriter($"resp-{DateTime.Now.Ticks}.json"))
+                using (StreamWriter sr = new StreamWriter($"./responses/resp-{DateTime.Now.Ticks}.json"))
                     sr.WriteLine(message.Content);
 
                 return message;

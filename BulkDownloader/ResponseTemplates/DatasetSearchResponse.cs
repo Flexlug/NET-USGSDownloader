@@ -12,7 +12,7 @@ namespace BulkDownloader.ResponseTemplates
     public class DatasetSearchResponse
     {
         [JsonProperty("errorCode")]
-        public int? ErrorCode { get; set; }
+        public string ErrorCode { get; set; }
 
         [JsonProperty("errorMessage")]
         public string ErrorMessage { get; set; }

@@ -11,11 +11,14 @@ namespace BulkDownloader.ResponseTemplates
     /// </summary>
     public class DownloadOrderLoadResponse
     {
+        [JsonProperty("data")]
+        public List<DataStruct> Data { get; set; }
+
         [JsonProperty("version")]
         public string Version { get; set; }
 
         [JsonProperty("errorCode")]
-        public int? ErrorCode { get; set; }
+        public string ErrorCode { get; set; }
 
         [JsonProperty("requestId")]
         public int? RequestId { get; set; }
@@ -28,38 +31,38 @@ namespace BulkDownloader.ResponseTemplates
 
         public class DataStruct
         {
-            [JsonProperty("id")]
-            public int? Id { get; set; }
-
-            [JsonProperty("displayId`")]
-            public string DisplayId { get; set; }
+            [JsonProperty("label")]
+            public string Label { get; set; }
 
             [JsonProperty("entityId")]
             public string EntityId { get; set; }
 
-            [JsonProperty("datasetId")]
-            public string DatasetId { get; set; }
-
-            [JsonProperty("available")]
-            public string Available { get; set; }
+            [JsonProperty("eulaCode")]
+            public string Eialcode { get; set; }
 
             [JsonProperty("filesize")]
             public long? FileSize { get; set; }
 
-            [JsonProperty("productName")]
-            public string ProductName { get; set; }
+            [JsonProperty("datasetId")]
+            public string DatasetId { get; set; }
+
+            [JsonProperty("displayId`")]
+            public string DisplayId { get; set; }
+
+            [JsonProperty("statusCode")]
+            public string StatusCode { get; set; }
+
+            [JsonProperty("statusText")]
+            public string StatusText { get; set; }
 
             [JsonProperty("productCode")]
             public string ProductCode { get; set; }
 
-            [JsonProperty("bulkAvailable")]
-            public string BulkAvailable { get; set; }
+            [JsonProperty("productName")]
+            public string ProductName { get; set; }
 
-            [JsonProperty("downloadSystem")]
-            public string DownloadSystem { get; set; }
-
-            [JsonProperty("secondaryDownloads")]
-            public DataStruct secondaryDownloads { get; set; }
+            [JsonProperty("collectionName")]
+            public string CollectionName { get; set; }
         }
     }
 }

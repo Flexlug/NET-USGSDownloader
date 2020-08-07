@@ -23,31 +23,29 @@ namespace BulkDownloader.RequestTemplates
         [JsonProperty("publicOnly")]
         public bool? PublicOnly { get; set; }
 
-        [JsonProperty("spatialFilter")]
-        public SpatialFilterStruct SpatialFilter { get; set; }
-
         [JsonProperty("temporalFilter")]
         public TemporalFilterStruct TemporalFilter { get; set; }
+
+        [JsonProperty("spatialFilter")]
+        public SpatialFilterStruct SpatialFilter { get; set; }
 
         public class SpatialFilterStruct
         {
             [JsonProperty("filterType")]
             public string FilterType { get; set; }
 
-            [JsonProperty("lowerLeft")]
-            public Coordinates LowerLeft { get; set; }
+            [JsonProperty("geoJson")]
+            public GeoJsonStruct GeoJson { get; set; }
 
-            [JsonProperty("upperRight")]
-            public Coordinates UpperRight { get; set; }
-
-            public class Coordinates
+            public class GeoJsonStruct
             {
-                [JsonProperty("latitude")]
-                public double? Latitude { get; set; }
+                [JsonProperty("type")]
+                public string Type { get; set; }
 
-                [JsonProperty("longitude")]
-                public double? Longitude { get; set; }
+                [JsonProperty("coordinates")]
+                public List<List<List<double>>> Coordinates { get; set; }
             }
+
         }
 
         public class TemporalFilterStruct
