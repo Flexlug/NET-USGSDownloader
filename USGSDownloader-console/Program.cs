@@ -94,8 +94,34 @@ namespace USGSDownloader
 
                         logger.LogSuccess("main", $"Found {dsronse.Data.Count} databases");
 
+                        List<string> categories = new List<string>();
+
+                        int num = 1;
+                        foreach(var dat in dsronse.Data)
+                        {
+                            if (!categories.Contains(dat.DatasetCategoryName))
+                            {
+                                Console.WriteLine($"{num++}:{dat.DatasetCategoryName}");
+                                categories.Add(dat.DatasetCategoryName);
+                            }
+                        }
+
+                        int chose = Convert.ToInt32(Console.ReadLine());
+
+                        num = 1;
+                        List<DatasetSearchResponse.DataStruct> dataList = new List<DatasetSearchResponse.DataStruct>();
+                        foreach (var dat in dataList = dsronse.Data.Select(x => x)
+                                                        .Where(x => x.DatasetCategoryName == categories[chose - 1])
+                                                        .ToList())
+                        {
+                            Console.WriteLine($"{num++}: {dat.CollectionName}");
+                        }
+
+                        chose = Convert.ToInt32(Console.ReadLine());
+
+
                         // Берём первый датасет (обычно их очень много)
-                        DatasetSearchResponse.DataStruct data = dsronse.Data.First();
+                        DatasetSearchResponse.DataStruct data = dataList[chose - 1];
                         logger.LogInfo("main", $"Using database. id: {data.DatasetId}, name: {data.DatasetAlias}");
                         logger.LogInfo("main", $"Requesting Entity Ids");
 
@@ -130,6 +156,14 @@ namespace USGSDownloader
 
 
                         logger.LogSuccess("main", $"Got {results.Count} entities");
+
+                        num = 1;
+                        foreach (var res in results)
+                        {
+                            Console.WriteLine($"{num}: {res.EntityId}");
+                        }
+
+                        Console.ReadLine();
 
                         // Качем каждую картинку по ID картинки и датасета
                         foreach (var res in results)
