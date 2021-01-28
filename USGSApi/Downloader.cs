@@ -132,56 +132,40 @@ namespace USGSApi
             // Поэтому мы используем сервис USGS EarthExplorer, из которого мы вытягиваем ссылки на снимки
             // А для ссылок нам понадобятся раннее полученные id снимка и датасета
 
+
             // ТЕПЕРЬ ЕЩЁ И КУКИ ОБЯЗАТЕЛЬНЫ
-            // 0. Вручную авторизуемся для того, чтобы вытянуть куки
+            // Задача: получить куки ee-production; EROS_SSO_production_secure; ERS_production_2
+            // 0. Эмулируем заполнение формы авторизации для получения нужных куки
 
             _client = new RestClient();
             _client.CookieContainer = new CookieContainer();
 
+            // Первый запрос страницы. Получаем куки ers-production и уникальный ключ csrf
             RestRequest reqLoginPage = new RestRequest(@"https://ers.cr.usgs.gov/login");
             reqLoginPage.Method = Method.GET;
             IRestResponse respLoginPage = _client.Execute(reqLoginPage);
 
+            // Распарсиваем ers-production
             HttpCookie ers_production_cookie = respLoginPage.Cookies.First(x => x.HttpCookie.Name == "ers-production").HttpCookie;
 
-            //reqLoginPage = new RestRequest(@"https://earthexplorer.usgs.gov/login");
-            //reqLoginPage.Method = Method.GET;
-            //respLoginPage = _client.Execute(reqLoginPage);
-
-            //HttpCookie ee_production_cookie = respLoginPage.Cookies.First(x => x.HttpCookie.Name == "ee-production").HttpCookie;
-
+            // Распарсиваем csrf
             HtmlDocument docLogin = new HtmlDocument();
             docLogin.LoadHtml(respLoginPage.Content);
-
             string csrf = docLogin.DocumentNode.SelectNodes(".//input[@name='csrf']")
                                                .First()
                                                .GetAttributeValue("value", string.Empty);
 
+            // Производим авторизацию с использованием раннее полученных csrf и ers-production
             RestRequest reqLogin = new RestRequest(@"https://ers.cr.usgs.gov/login/", Method.POST, DataFormat.None);
             reqLogin.AddParameter(ers_production_cookie.Name, ers_production_cookie.Value, ParameterType.Cookie);
-            //reqLogin.AddParameter("Content-Type", "application/x-www-form-urlencoded", ParameterType.HttpHeader);
-            //reqLogin.AddParameter("username", @$"{_login}&password={_password}&csrf={csrf}", ParameterType.RequestBody);
-            //reqLogin.AddParameter("password", _password, ParameterType.RequestBody);
-            //reqLogin.AddParameter("csrf", csrf, ParameterType.RequestBody);
-
             reqLogin.Body = new RequestBody("application/x-www-form-urlencoded", "", @$"username={_login}&password={_password}&csrf={csrf}");
 
-            //CookieContainer cookieContainer = new CookieContainer();
-            //cookieContainer.Add(new Cookie("ers-production",
-            //                               ers_production_cookie.Value,
-            //                               ers_production_cookie.Path,
-            //                               ers_production_cookie.Domain));
-
-            //_client.CookieContainer = cookieContainer;
             IRestResponse respLogin = _client.Execute(reqLogin);
 
-            //-----------------
-            //cookies = _client.CookieContainer.List();
-            //-----------------
-
+            // Распарсиваем EROS_SSO_production_secure и ERS_production_2
             HttpCookie EROS_SSO_production_secure = respLogin.Cookies.First(x => x.HttpCookie.Name == "EROS_SSO_production_secure").HttpCookie;
             HttpCookie ERS_production_2 = respLogin.Cookies.First(x => x.HttpCookie.Name == "ERS_production_2").HttpCookie;
-
+            // Далее при запросах используем как минимум EROS_SSO_production_secure и ERS_production_2. 
 
             // 1. Сперва получаем product id, потому что снимок может содержаться в нескольких форматах
             RestRequest req1 = new RestRequest($@"https://earthexplorer.usgs.gov/scene/downloadoptions/{datasetId}/{entityId}/");
@@ -215,7 +199,6 @@ namespace USGSApi
                 _logger.LogSuccess("Download", $"Got product id. Value: {productId}");
 
                 // Качаем файл по product id
-
                 string save_file = $"{entityId}-{DateTime.Now.Ticks}.ZIP";
 
                 _logger.LogInfo("Download", $"File will be saved as: {save_file}");
