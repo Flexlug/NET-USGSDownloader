@@ -20,6 +20,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using USGSApi.Intrefaces;
+using System.Reflection;
+using System.Collections;
 
 namespace USGSApi
 {
@@ -51,7 +53,7 @@ namespace USGSApi
         /// <summary>
         /// E-Mail пользователя
         /// </summary>
-        private readonly string _email;
+        private readonly string _login;
 
         /// <summary>
         /// Пароль пользователя
@@ -70,7 +72,7 @@ namespace USGSApi
         /// <param name="password">Пароль от аккаунта USGS</param>
         public Downloader(string email, string password, IUSGSLogger logger = null)
         {
-            _email = email;
+            _login = email;
             _password = password;
 
             DownloadApplication = $"NET-USGSDownloader-{DateTime.Now.Year}-{DateTime.Now.DayOfWeek}";
@@ -86,18 +88,18 @@ namespace USGSApi
             updateToken();
         }
 
-        public DataOwnerResponse            DataOwner(DataOwnerRequest req)                     => MakeRequest<DataOwnerRequest, DataOwnerResponse>("data-owner", req) as DataOwnerResponse;
-        public DatasetResponse              Dataset(DatasetRequest req)                         => MakeRequest<DatasetRequest, DatasetResponse>("dataset", req) as DatasetResponse;
-        public DatasetCategoriesResponse    DatasetCategories(DatasetCategoriesRequest req)     => MakeRequest<DatasetCategoriesRequest, DatasetCategoriesResponse>("dataset-categories", req) as DatasetCategoriesResponse;
-        public DatasetSearchResponse        DatasetSearch(DatasetSearchRequest req)             => MakeRequest<DatasetSearchRequest, DatasetSearchResponse>("dataset-search", req) as DatasetSearchResponse;
-        public DownloadLabelsResponse       DownloadLabels(DownloadLabelsRequest req)           => MakeRequest<DownloadLabelsRequest, DownloadLabelsResponse>("download-labels", req) as DownloadLabelsResponse;
-        public DownloadOrderLoadResponse    DownloadOrderLoad(DownloadOrderLoadRequest req)     => MakeRequest<DownloadOrderLoadRequest, DownloadOrderLoadResponse>("download-order-load", req) as DownloadOrderLoadResponse;
-        public DownloadRetrieveResponse     DownloadRetrieve(DownloadRetrieveRequest req)       => MakeRequest<DownloadRetrieveRequest, DownloadRetrieveResponse>("download-retrieve", req) as DownloadRetrieveResponse;
-        public SceneListAddResponse         SceneListAdd(SceneListAddRequest req)               => MakeRequest<SceneListAddRequest, SceneListAddResponse>("scene-list-add", req) as SceneListAddResponse;
-        public SceneListGetResponse         SceneListGet(SceneListGetRequest req)               => MakeRequest<SceneListGetRequest, SceneListGetResponse>("scene-list-get", req) as SceneListGetResponse;
-        public SceneListRemoveResponse      SceneListRemove(SceneListRemoveRequest req)         => MakeRequest<SceneListRemoveRequest, SceneListRemoveResponse>("scene-list-remove", req) as SceneListRemoveResponse;
-        public SceneListSummaryResponse     SceneListSummary(SceneListSummaryRequest req)       => MakeRequest<SceneListSummaryRequest, SceneListSummaryResponse>("scene-list-summary", req) as SceneListSummaryResponse;
-        public SceneSearchResponse          SceneSearch(SceneSearchRequest req)                 => MakeRequest<SceneSearchRequest, SceneSearchResponse>("scene-search", req) as SceneSearchResponse;
+        public DataOwnerResponse DataOwner(DataOwnerRequest req) => MakeRequest<DataOwnerRequest, DataOwnerResponse>("data-owner", req) as DataOwnerResponse;
+        public DatasetResponse Dataset(DatasetRequest req) => MakeRequest<DatasetRequest, DatasetResponse>("dataset", req) as DatasetResponse;
+        public DatasetCategoriesResponse DatasetCategories(DatasetCategoriesRequest req) => MakeRequest<DatasetCategoriesRequest, DatasetCategoriesResponse>("dataset-categories", req) as DatasetCategoriesResponse;
+        public DatasetSearchResponse DatasetSearch(DatasetSearchRequest req) => MakeRequest<DatasetSearchRequest, DatasetSearchResponse>("dataset-search", req) as DatasetSearchResponse;
+        public DownloadLabelsResponse DownloadLabels(DownloadLabelsRequest req) => MakeRequest<DownloadLabelsRequest, DownloadLabelsResponse>("download-labels", req) as DownloadLabelsResponse;
+        public DownloadOrderLoadResponse DownloadOrderLoad(DownloadOrderLoadRequest req) => MakeRequest<DownloadOrderLoadRequest, DownloadOrderLoadResponse>("download-order-load", req) as DownloadOrderLoadResponse;
+        public DownloadRetrieveResponse DownloadRetrieve(DownloadRetrieveRequest req) => MakeRequest<DownloadRetrieveRequest, DownloadRetrieveResponse>("download-retrieve", req) as DownloadRetrieveResponse;
+        public SceneListAddResponse SceneListAdd(SceneListAddRequest req) => MakeRequest<SceneListAddRequest, SceneListAddResponse>("scene-list-add", req) as SceneListAddResponse;
+        public SceneListGetResponse SceneListGet(SceneListGetRequest req) => MakeRequest<SceneListGetRequest, SceneListGetResponse>("scene-list-get", req) as SceneListGetResponse;
+        public SceneListRemoveResponse SceneListRemove(SceneListRemoveRequest req) => MakeRequest<SceneListRemoveRequest, SceneListRemoveResponse>("scene-list-remove", req) as SceneListRemoveResponse;
+        public SceneListSummaryResponse SceneListSummary(SceneListSummaryRequest req) => MakeRequest<SceneListSummaryRequest, SceneListSummaryResponse>("scene-list-summary", req) as SceneListSummaryResponse;
+        public SceneSearchResponse SceneSearch(SceneSearchRequest req) => MakeRequest<SceneSearchRequest, SceneSearchResponse>("scene-search", req) as SceneSearchResponse;
 
         /// <summary>
         /// Разлогиниться и аннулировать токен
@@ -106,7 +108,7 @@ namespace USGSApi
         {
             // Отсылаем пустой запрос с токеном
 
-            RestRequest req_message = new RestRequest(USGS_URL + "logout", Method.POST); 
+            RestRequest req_message = new RestRequest(USGS_URL + "logout", Method.POST);
             req_message.AddHeader("X-Auth-Token", _token.ToString());
             IRestResponse message = sendRequest(req_message);
         }
@@ -130,21 +132,76 @@ namespace USGSApi
             // Поэтому мы используем сервис USGS EarthExplorer, из которого мы вытягиваем ссылки на снимки
             // А для ссылок нам понадобятся раннее полученные id снимка и датасета
 
+            // ТЕПЕРЬ ЕЩЁ И КУКИ ОБЯЗАТЕЛЬНЫ
+            // 0. Вручную авторизуемся для того, чтобы вытянуть куки
+
+            _client = new RestClient();
+            _client.CookieContainer = new CookieContainer();
+
+            RestRequest reqLoginPage = new RestRequest(@"https://ers.cr.usgs.gov/login");
+            reqLoginPage.Method = Method.GET;
+            IRestResponse respLoginPage = _client.Execute(reqLoginPage);
+
+            HttpCookie ers_production_cookie = respLoginPage.Cookies.First(x => x.HttpCookie.Name == "ers-production").HttpCookie;
+
+            //reqLoginPage = new RestRequest(@"https://earthexplorer.usgs.gov/login");
+            //reqLoginPage.Method = Method.GET;
+            //respLoginPage = _client.Execute(reqLoginPage);
+
+            //HttpCookie ee_production_cookie = respLoginPage.Cookies.First(x => x.HttpCookie.Name == "ee-production").HttpCookie;
+
+            HtmlDocument docLogin = new HtmlDocument();
+            docLogin.LoadHtml(respLoginPage.Content);
+
+            string csrf = docLogin.DocumentNode.SelectNodes(".//input[@name='csrf']")
+                                               .First()
+                                               .GetAttributeValue("value", string.Empty);
+
+            RestRequest reqLogin = new RestRequest(@"https://ers.cr.usgs.gov/login/", Method.POST, DataFormat.None);
+            reqLogin.AddParameter(ers_production_cookie.Name, ers_production_cookie.Value, ParameterType.Cookie);
+            //reqLogin.AddParameter("Content-Type", "application/x-www-form-urlencoded", ParameterType.HttpHeader);
+            //reqLogin.AddParameter("username", @$"{_login}&password={_password}&csrf={csrf}", ParameterType.RequestBody);
+            //reqLogin.AddParameter("password", _password, ParameterType.RequestBody);
+            //reqLogin.AddParameter("csrf", csrf, ParameterType.RequestBody);
+
+            reqLogin.Body = new RequestBody("application/x-www-form-urlencoded", "", @$"username={_login}&password={_password}&csrf={csrf}");
+
+            //CookieContainer cookieContainer = new CookieContainer();
+            //cookieContainer.Add(new Cookie("ers-production",
+            //                               ers_production_cookie.Value,
+            //                               ers_production_cookie.Path,
+            //                               ers_production_cookie.Domain));
+
+            //_client.CookieContainer = cookieContainer;
+            IRestResponse respLogin = _client.Execute(reqLogin);
+
+            //-----------------
+            //cookies = _client.CookieContainer.List();
+            //-----------------
+
+            HttpCookie EROS_SSO_production_secure = respLogin.Cookies.First(x => x.HttpCookie.Name == "EROS_SSO_production_secure").HttpCookie;
+            HttpCookie ERS_production_2 = respLogin.Cookies.First(x => x.HttpCookie.Name == "ERS_production_2").HttpCookie;
+
+
             // 1. Сперва получаем product id, потому что снимок может содержаться в нескольких форматах
             RestRequest req1 = new RestRequest($@"https://earthexplorer.usgs.gov/scene/downloadoptions/{datasetId}/{entityId}/");
             req1.Method = Method.POST;
+            req1.AddParameter(EROS_SSO_production_secure.Name, EROS_SSO_production_secure.Value, ParameterType.Cookie);
+            req1.AddParameter(ERS_production_2.Name, ERS_production_2.Value, ParameterType.Cookie);
 
             _logger.LogInfo("Download", $"Prepairing download - datasetId:{datasetId}, entityId: {entityId}");
             _logger.LogInfo("Download", "Getting product id...");
 
             IRestResponse resp1 = _client.Execute(req1);
 
+            HttpCookie ee_production_cookie = resp1.Cookies.First(x => x.HttpCookie.Name == "ee-production").HttpCookie;
 
             // Парсим product id
             HtmlDocument doc = new HtmlDocument();
             doc.LoadHtml(resp1.Content);
             HtmlNodeCollection node = doc.DocumentNode.SelectNodes(".//button[@class='btn btn-secondary downloadButton']");
             string[] productIdArray = node.Select(x => x.GetAttributeValue("data-productId", string.Empty)).ToArray();
+
 
             // Product id может быть несколько. Обрабатываем каждый
             foreach (string productId in productIdArray)
@@ -166,6 +223,9 @@ namespace USGSApi
 
                 // Начинаем загрузку
                 isDownloading = true;
+                client.Headers.Add(HttpRequestHeader.Cookie, $"{ee_production_cookie.Name}={ee_production_cookie.Value}; " +
+                                                             $"{EROS_SSO_production_secure.Name}={EROS_SSO_production_secure.Value}; " +
+                                                             $"{ERS_production_2.Name}={ERS_production_2.Value}");
                 client.DownloadFileAsync(new Uri($@"https://earthexplorer.usgs.gov/download/{productId}/{entityId}/EE/"), $"{save_file}");
 
                 // Тормозим поток, чтобы избежать размножения загрузок
@@ -197,13 +257,13 @@ namespace USGSApi
         /// </summary>
         private void updateToken()
         {
-            AuthRequest req = new AuthRequest(_email, _password);
+            AuthRequest req = new AuthRequest(_login, _password);
 
             string content_json = JsonConvert.SerializeObject(req);
             RestRequest req_message = constructPostMessage("login", content_json, false);
             IRestResponse message = sendRequest(req_message);
 
-            AuthResponse response = JsonConvert.DeserializeObject<AuthResponse>(message.Content.ToString()) 
+            AuthResponse response = JsonConvert.DeserializeObject<AuthResponse>(message.Content.ToString())
                                         ?? throw new USGSResponseNullException();
 
             if (!string.IsNullOrEmpty(response.Token))
@@ -227,10 +287,10 @@ namespace USGSApi
             {
                 return message;
             }
-            else 
+            else
             {
                 _logger.LogError("sendRequest", "Recieved response with not OK code. Check authorization credentials");
-                throw new USGSUnauthorizedException(); 
+                throw new USGSUnauthorizedException();
             }
         }
 
@@ -257,5 +317,41 @@ namespace USGSApi
 
             return req_message;
         }
+
+
+
     }
+
+    public static class CookieTrepanator
+    {
+        public static List<Cookie> List(this CookieContainer container)
+        {
+            var cookies = new List<Cookie>();
+
+            var table = (Hashtable)container.GetType().InvokeMember("m_domainTable",
+                BindingFlags.NonPublic |
+                BindingFlags.GetField |
+                BindingFlags.Instance,
+                null,
+                container,
+                null);
+
+            foreach (string key in table.Keys)
+            {
+                var item = table[key];
+                var items = (ICollection)item.GetType().GetProperty("Values").GetGetMethod().Invoke(item, null);
+                foreach (CookieCollection cc in items)
+                {
+                    foreach (Cookie cookie in cc)
+                    {
+                        cookies.Add(cookie);
+                    }
+                }
+            }
+
+            return cookies;
+
+        }
+    }
+
 }
